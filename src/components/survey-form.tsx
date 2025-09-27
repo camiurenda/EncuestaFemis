@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Flower2, Loader2, Heart } from 'lucide-react';
+import { Code, Loader2, Heart } from 'lucide-react';
 
 import { submitSurvey } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -123,10 +123,10 @@ export default function SurveyForm() {
     <Card className="w-full shadow-2xl shadow-primary/10">
       <CardHeader className="text-center">
         <div className="mx-auto bg-primary/10 rounded-full p-3 w-fit mb-4">
-          <Flower2 className="w-10 h-10 text-primary" />
+          <Code className="w-10 h-10 text-primary" />
         </div>
         <CardTitle className="font-headline text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-          Encuesta de Soluciones Web Feministas
+          Encuesta de Soluciones Web
         </CardTitle>
         <CardDescription className="mt-2 text-lg">
           Diseñemos juntas la tecnología que tu proyecto necesita para crecer y brillar
