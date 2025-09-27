@@ -48,10 +48,26 @@ export async function submitSurvey(data: z.infer<typeof FormSchema>): Promise<Fo
       monthlySupportInterest: data.monthlySupportInterest,
     };
 
-    const result = await suggestResourceRecommendations(aiInput);
+    // Don't wait for these promises to resolve, run them in parallel
+    const recommendationsPromise = suggestResourceRecommendations(aiInput);
 
-    // Here you could also save the full form data (data) to a database
-    // or send it to a service like Formspree.
+    const formspreePromise = fetch(process.env.FORM_ENDPOINT as string, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    const [result, formspreeResult] = await Promise.all([recommendationsPromise, formspreePromise]);
+    
+    if (!formspreeResult.ok) {
+        console.error('Error submitting to Formspree:', formspreeResult.statusText);
+        const formspreeError = await formspreeResult.json();
+        console.error(formspreeError);
+        // We can still continue if formspree fails, as the main goal is recommendations.
+    }
 
     return { success: true, recommendations: result.recommendations };
   } catch (error) {
