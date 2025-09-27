@@ -1,10 +1,7 @@
 
 'use server';
 
-import {
-  suggestResourceRecommendations,
-  type SuggestResourceRecommendationsInput,
-} from '@/ai/flows/suggest-resource-recommendations';
+// AI recommendations removed
 import { z } from 'zod';
 
 const FormSchema = z.object({
@@ -16,12 +13,12 @@ const FormSchema = z.object({
   investmentReadiness: z.string(),
   investmentAmount: z.string().optional(),
   monthlySupportInterest: z.string(),
-  contact: z.string(),
+  email: z.string().email('Ingresá un email válido'),
+  phone: z.string().min(1, 'Ingresá tu teléfono'),
 });
 
 type FormState = {
   success: boolean;
-  recommendations?: string;
   error?: string;
 };
 
@@ -35,23 +32,8 @@ const desiredSolutionsOptions = [
 
 export async function submitSurvey(data: z.infer<typeof FormSchema>): Promise<FormState> {
   try {
-    const aiInput: SuggestResourceRecommendationsInput = {
-      digitalPresence: data.digitalPresence,
-      challenges: data.challenges,
-      desiredSolutions:
-        data.desiredSolutions === 'Todas las anteriores'
-          ? desiredSolutionsOptions
-          : [data.desiredSolutions],
-      profession: data.profession,
-      investmentReadiness: data.investmentReadiness,
-      investmentAmount: data.investmentAmount,
-      monthlySupportInterest: data.monthlySupportInterest,
-    };
-
-    // Don't wait for these promises to resolve, run them in parallel
-    const recommendationsPromise = suggestResourceRecommendations(aiInput);
-
-    const formspreePromise = fetch(process.env.FORM_ENDPOINT as string, {
+    // Submit to Formspree only
+    const formspreeResult = await fetch(process.env.FORM_ENDPOINT as string, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: {
@@ -60,18 +42,23 @@ export async function submitSurvey(data: z.infer<typeof FormSchema>): Promise<Fo
       }
     });
 
-    const [result, formspreeResult] = await Promise.all([recommendationsPromise, formspreePromise]);
-    
     if (!formspreeResult.ok) {
-        console.error('Error submitting to Formspree:', formspreeResult.statusText);
-        const formspreeError = await formspreeResult.json();
-        console.error(formspreeError);
-        // We can still continue if formspree fails, as the main goal is recommendations.
+        console.error('Error submitting to Formspree:', formspreeResult.status, formspreeResult.statusText);
+        try {
+            const formspreeError = await formspreeResult.json();
+            console.error('Formspree error details:', formspreeError);
+        } catch (e) {
+            console.error('Could not parse Formspree error response');
+        }
+        return {
+            success: false,
+            error: 'No pudimos procesar tu encuesta en este momento. Por favor, intentá de nuevo más tarde.',
+        };
     }
 
-    return { success: true, recommendations: result.recommendations };
+    return { success: true };
   } catch (error) {
-    console.error('Error submitting survey or getting recommendations:', error);
+    console.error('Error submitting survey:', error);
     return {
       success: false,
       error: 'Ocurrió un error al procesar tu encuesta. Por favor, intentá de nuevo más tarde.',

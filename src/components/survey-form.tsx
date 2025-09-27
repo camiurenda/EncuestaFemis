@@ -26,7 +26,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import Recommendations from './recommendations';
+// Recommendations removed
 
 const requiredString = (message: string) => z.string({ required_error: message }).min(1, message);
 const requiredArray = (message: string) => z.array(z.string()).refine((value) => value.length > 0, { message });
@@ -40,7 +40,8 @@ const formSchema = z.object({
   investmentReadiness: requiredString('Por favor, seleccioná una opción.'),
   investmentAmount: z.string().optional().default(''),
   monthlySupportInterest: requiredString('Por favor, seleccioná una opción.'),
-  contact: requiredString('Por favor, ingresá tu email o WhatsApp.'),
+  email: z.string().email('Ingresá un email válido').min(1, 'El email es requerido.'),
+  phone: requiredString('Por favor, ingresá tu teléfono.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,12 +54,12 @@ const formSections = [
   { name: 'investmentReadiness', label: '¿Qué tan dispuesta estarías a invertir en una solución digital que te dé visibilidad y te ahorre tiempo? *', options: ['Muy dispuesta', 'Algo dispuesta', 'Poco dispuesta', 'Nada dispuesta'] },
   { name: 'investmentAmount', label: '(Opcional) Para orientarme un poco, ¿cuánto sentirías cómodo invertir en algo así?', options: ['Hasta $10.000', 'Entre $10.000 y $25.000', 'Entre $25.000 y $50.000', 'Más de $50.000', 'Prefiero no decir'] },
   { name: 'monthlySupportInterest', label: '¿Te interesaría un plan de acompañamiento mensual accesible que incluya soporte, cambios pequeños y ayuda con lo digital? *', options: ['Sí, me interesa mucho', 'Tal vez, dependiendo del precio', 'No estoy segura', 'No me interesa'] },
-  { name: 'contact', label: '¿Querés que te avise cuando arme las primeras soluciones? *' }
+  // Contact field replaced with separate email and phone fields
 ];
 
 export default function SurveyForm() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
-  const [recommendations, setRecommendations] = useState<string>('');
+  // Recommendations state removed
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -72,17 +73,21 @@ export default function SurveyForm() {
       investmentReadiness: '',
       investmentAmount: '',
       monthlySupportInterest: '',
-      contact: '',
+      email: '',
+      phone: '',
     },
   });
 
   async function onSubmit(values: FormValues) {
     setFormState('submitting');
     const result = await submitSurvey(values);
-    if (result.success && result.recommendations) {
-      setRecommendations(result.recommendations);
+    if (result.success) {
       setFormState('success');
       form.reset();
+      toast({
+        title: '¡Encuesta enviada!',
+        description: 'Gracias por completar la encuesta. Hemos recibido tu información.',
+      });
     } else {
       toast({
         variant: 'destructive',
@@ -112,8 +117,11 @@ export default function SurveyForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Separator className="my-4" />
-          <Recommendations recommendations={recommendations} />
+          <div className="text-center py-6">
+            <p className="text-muted-foreground">
+              Pronto te contactaremos con más información.
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -337,19 +345,37 @@ export default function SurveyForm() {
 
             <Separator />
 
-            {renderAnimatedSection(<FormField
-              control={form.control}
-              name="contact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">{formSections[7].label}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Tu email o WhatsApp" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />, 7)}
+            {renderAnimatedSection(<div className="space-y-4">
+              <h3 className="text-lg font-semibold">¿Querés que te avise cuando arme las primeras soluciones? *</h3>
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="tu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono *</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="11 1234-5678" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>, 7)}
           </form>
         </Form>
       </CardContent>
